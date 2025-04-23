@@ -15,14 +15,23 @@ passport.use('local', new LocalStrategy({
     try {
         const user = await User.findOne({ email });
         if (!user) {
+            console.log('Usuario no encontrado:', email);
             return done(null, false, { message: 'Usuario no encontrado' });
         }
+
+        console.log('Contraseña ingresada:', password);
+        console.log('Hash almacenado:', user.password);
+
         const isMatch = bcrypt.compareSync(password, user.password);
+        console.log('Resultado de la comparación de contraseñas:', isMatch);
+
         if (!isMatch) {
             return done(null, false, { message: 'Contraseña incorrecta' });
         }
+
         return done(null, user);
     } catch (error) {
+        console.error('Error en la estrategia local:', error);
         return done(error);
     }
 }));
@@ -41,9 +50,11 @@ passport.use('jwt', new JwtStrategy(opts, async (jwt_payload, done) => {
         if (user) {
             return done(null, user);
         } else {
+            console.log('Usuario no encontrado en JWT:', jwt_payload.id);
             return done(null, false);
         }
     } catch (error) {
+        console.error('Error en la estrategia JWT:', error);
         return done(error, false);
     }
 }));
