@@ -38,3 +38,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 .catch((err) => {
     console.error('Database connection error:', err);
 });
+
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
