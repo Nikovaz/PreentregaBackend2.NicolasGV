@@ -28,16 +28,13 @@ app.use('/api/users', userRoutes);
 app.use(errorHandler);
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => {
-    console.log('Database connected');
-})
-.catch((err) => {
-    console.error('Database connection error:', err);
-});
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+        console.log('Database connected');
+    })
+    .catch((err) => {
+        console.error('Database connection error:', err);
+    });
 
 // Start the server
 app.listen(PORT, () => {

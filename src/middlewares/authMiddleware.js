@@ -1,23 +1,40 @@
-import jwt from 'jsonwebtoken';
-import { promisify } from 'util';
-import User from '../models/User.js';
-
-const authMiddleware = async (req, res, next) => {
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ message: 'No token provided' });
-        }
-
-        const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-        req.user = await User.findById(decoded.id);
+const authMiddleware = {
+    isAdmin: (req, res, next) => {
         if (!req.user) {
-            return res.status(401).json({ message: 'User not found' });
+            return res.status(401).json({ error: 'No autenticado' });
         }
-
+        
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+        
         next();
-    } catch (error) {
-        return res.status(401).json({ message: 'Unauthorized', error: error.message });
+    },
+
+    isUser: (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'No autenticado' });
+        }
+        
+        if (req.user.role !== 'user') {
+            return res.status(403).json({ error: 'No autorizado' });
+        }
+        
+        next();
+    },
+
+    addToCartAuthorization: (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'No autenticado' });
+        }
+        
+        const requestedCartId = req.params.cid || req.body.cartId;
+        
+        if (req.user.cart.toString() !== requestedCartId) {
+            return res.status(403).json({ error: 'No autorizado para modificar este carrito' });
+        }
+        
+        next();
     }
 };
 

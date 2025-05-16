@@ -1,13 +1,15 @@
 import express from 'express';
-import { register, login } from '../controllers/authController.js';
-import authMiddleware from '../middlewares/authMiddleware.js'; // Cambiado a authMiddleware
+import { register, login, getCurrentUser, requestPasswordReset, resetPassword } from '../controllers/authController.js';
+import passport from 'passport';
 
 const router = express.Router();
 
 router.post('/register', register);
 router.post('/login', login);
-router.get('/current', authMiddleware, (req, res) => { // Usar authMiddleware aquí
-    res.json(req.user);
-});
+router.get('/current', passport.authenticate('jwt', { session: false }), getCurrentUser);
+
+// Rutas para recuperación de contraseña
+router.post('/request-password-reset', requestPasswordReset);
+router.post('/reset-password/:token', resetPassword);
 
 export default router;
