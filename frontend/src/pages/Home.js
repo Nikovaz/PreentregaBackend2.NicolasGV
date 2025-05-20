@@ -1,7 +1,52 @@
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { toast } from 'react-toastify';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 
 const Home = () => {
+  const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
+  
+  // Sample products data that matches the MongoDB id format
+  const featuredProducts = [
+    {
+      _id: '60d21b4667d0d8992e610c85',
+      name: 'Producto 1',
+      price: 99.99
+    },
+    {
+      _id: '60d21b4667d0d8992e610c86',
+      name: 'Producto 2',
+      price: 99.99
+    },
+    {
+      _id: '60d21b4667d0d8992e610c87',
+      name: 'Producto 3',
+      price: 99.99
+    },
+    {
+      _id: '60d21b4667d0d8992e610c88',
+      name: 'Producto 4',
+      price: 99.99
+    }
+  ];
+  
+  const handleAddToCart = async (productId) => {
+    if (!isAuthenticated) {
+      toast.warning('Por favor inicia sesión para añadir productos al carrito');
+      return;
+    }
+    
+    try {
+      await addToCart(productId, 1);
+      const product = featuredProducts.find(p => p._id === productId);
+      toast.success(`${product.name} añadido al carrito!`);
+    } catch (error) {
+      console.error('Error al añadir al carrito:', error);
+      toast.error(`Error al añadir al carrito: ${error.message}`);
+    }
+  };
   return (
     <Container>
       <Row className="mb-4">
@@ -24,21 +69,21 @@ const Home = () => {
       <h2 className="mb-4">Productos destacados</h2>
       
       <Row>
-        {[1, 2, 3, 4].map((num) => (
-          <Col key={num} md={3} className="mb-4">
+        {featuredProducts.map((product) => (
+          <Col key={product._id} md={3} className="mb-4">
             <Card>
               <Card.Img 
-                variant="top" 
-                src={`https://via.placeholder.com/300x200?text=Producto+${num}`} 
-              />
+  variant="top" 
+  src={`/images/azul.png`} // o la imagen que prefieras
+/>
               <Card.Body>
-                <Card.Title>Producto {num}</Card.Title>
+                <Card.Title>{product.name}</Card.Title>
                 <Card.Text>
-                  Descripción corta del producto destacado número {num}.
+                  Descripción corta del {product.name}.
                 </Card.Text>
                 <div className="d-flex justify-content-between align-items-center">
-                  <span className="h5 mb-0">$99.99</span>
-                  <Button variant="primary" size="sm">
+                  <span className="h5 mb-0">${product.price}</span>
+                  <Button variant="primary" size="sm" onClick={() => handleAddToCart(product._id)}>
                     Agregar al carrito
                   </Button>
                 </div>

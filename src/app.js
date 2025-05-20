@@ -2,8 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import passport from 'passport'; // Importación del módulo de Passport
 import session from 'express-session';
+import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
 import errorHandler from './middlewares/errorHandler.js';
 import dotenv from 'dotenv';
 import './config/passport.js'; // Importa la configuración de Passport sin asignarla a una variable
@@ -12,6 +14,14 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// CORS configuration
+app.use(cors({
+    origin: 'http://localhost:5173', // Ajusta esto a la URL de tu frontend
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware
 app.use(express.json());
@@ -23,6 +33,7 @@ app.use(passport.session());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

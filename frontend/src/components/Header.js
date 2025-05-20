@@ -1,10 +1,12 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button, Badge } from 'react-bootstrap';
 import { AuthContext } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const Header = () => {
   const { user, logout, isAuthenticated } = useContext(AuthContext);
+  const { cart } = useCart();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -25,6 +27,17 @@ const Header = () => {
           <Nav>
             {isAuthenticated ? (
               <>
+                <Nav.Link as={Link} to="/cart" className="position-relative me-3">
+                  🛒 Carrito
+                  {cart && cart.items && cart.items.length > 0 && (
+                    <Badge bg="danger" pill className="position-absolute top-0 start-100 translate-middle">
+                      {cart.items.reduce((total, item) => {
+                        console.log('Item en carrito:', item);
+                        return total + item.quantity;
+                      }, 0)}
+                    </Badge>
+                  )}
+                </Nav.Link>
                 <Nav.Link as={Link} to="/profile">
                   Perfil ({user?.email})
                 </Nav.Link>

@@ -5,6 +5,7 @@ import userRepository from '../models/repositories/userRepository.js';
 import UserDTO from '../models/dtos/userDTO.js';
 import passwordResetService from '../services/passwordResetService.js';
 import emailService from '../services/emailService.js';
+import Cart from '../models/Cart.js';
 
 const { JWT_SECRET } = process.env;
 
@@ -18,6 +19,7 @@ export const register = async (req, res) => {
             return res.status(400).json({ message: 'Email already exists' });
         }
 
+        // Create user first
         const newUser = new User({
             first_name,
             last_name,
@@ -27,6 +29,19 @@ export const register = async (req, res) => {
             role: 'user'
         });
 
+        await newUser.save();
+        
+        // Create a cart for the new user
+        const newCart = new Cart({
+            user: newUser._id,
+            items: [],
+            total: 0
+        });
+        
+        await newCart.save();
+        
+        // Update user with the cart reference
+        newUser.cart = newCart._id;
         await newUser.save();
         res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
@@ -39,7 +54,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await userRepository.findByEmail(email);
+        const user = await User.findOne({ email }).populate('cart');
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -50,7 +65,19 @@ export const login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ token });
+        // Crear un objeto de usuario sin campos sensibles
+        const userResponse = {
+            user: {
+                _id: user._id,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                age: user.age,
+                role: user.role,
+                cart: user.cart ? user.cart._id : null
+            }
+        };
+        res.status(200).json({ token, user: userResponse.user });
     } catch (error) {
         console.error('Error en el login:', error);
         res.status(500).json({ message: 'Server error', error: error.message });

@@ -55,8 +55,14 @@ const authService = {
   },
 
   // Update user profile
-  updateProfile: async (userId, userData) => {
-    const response = await api.put(`/users/${userId}`, userData);
+  updateProfile: async (userData) => {
+    const response = await api.put(`/users/profile`, userData);
+    return response.data;
+  },
+
+  // Change password
+  changePassword: async (passwordData) => {
+    const response = await api.post('/users/change-password', passwordData);
     return response.data;
   },
 };

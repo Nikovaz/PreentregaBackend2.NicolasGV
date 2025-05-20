@@ -6,7 +6,17 @@ import userRepository from '../models/repositories/userRepository.js';
 class CartService {
     async getCart(userId) {
         try {
-            return await cartRepository.getCartByUser(userId);
+            try {
+                // Try to get the existing cart
+                return await cartRepository.getCartByUser(userId);
+            } catch (error) {
+                // If cart not found, create a new one
+                if (error.message.includes('Cart not found')) {
+                    console.log(`Creating new cart for user ${userId}`);
+                    return await cartRepository.createCart(userId);
+                }
+                throw error; // Re-throw other errors
+            }
         } catch (error) {
             throw new Error(`Error fetching cart: ${error.message}`);
         }

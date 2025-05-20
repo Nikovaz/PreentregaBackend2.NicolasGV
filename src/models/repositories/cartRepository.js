@@ -1,4 +1,5 @@
 import Cart from '../Cart.js';
+import mongoose from 'mongoose';
 import CartDTO from '../dtos/cartDTO.js';
 
 class CartRepository {
@@ -39,6 +40,7 @@ class CartRepository {
             
             if (!cart) {
                 // Create new cart if it doesn't exist
+                console.log(`Creating new cart for user ${userId}`);
                 cart = new Cart({
                     user: userId,
                     items: [{
@@ -47,11 +49,21 @@ class CartRepository {
                     }],
                     total: 0 // Will be calculated after populating product data
                 });
+                
+                try {
+                    // Update user reference to this cart if User model has cart field
+                    const User = mongoose.model('User');
+                    await User.findByIdAndUpdate(userId, { cart: cart._id });
+                } catch (userErr) {
+                    console.log(`Note: Could not update user with cart reference: ${userErr.message}`);
+                    // Continue anyway - the cart still works without user reference
+                }
             } else {
                 // Check if product is already in cart
-                const itemIndex = cart.items.findIndex(
-                    item => item.product.toString() === productId.toString()
-                );
+                const itemIndex = cart.items.findIndex(item => {
+                    const itemProductId = item.product._id || item.product;
+                    return itemProductId.toString() === productId.toString();
+                });
 
                 if (itemIndex > -1) {
                     // Update quantity if product already exists
@@ -65,17 +77,28 @@ class CartRepository {
                 }
             }
 
-            // Populate product data to calculate total
-            await cart.populate('items.product');
-            
-            // Calculate total
-            cart.total = cart.items.reduce(
-                (sum, item) => sum + (item.product.price * item.quantity),
-                0
-            );
+            try {
+                // Populate product data to calculate total
+                await cart.populate('items.product');
+                
+                // Calculate total with safety checks for product price
+                cart.total = cart.items.reduce((sum, item) => {
+                    const price = item.product && item.product.price ? item.product.price : 0;
+                    return sum + (price * item.quantity);
+                }, 0);
+            } catch (populateErr) {
+                console.error(`Warning: Error populating product data: ${populateErr.message}`);
+                // Set default total if we can't calculate it
+                cart.total = 0;
+            }
 
             const savedCart = await cart.save();
-            await savedCart.populate('items.product');
+            
+            try {
+                await savedCart.populate('items.product');
+            } catch (finalPopulateErr) {
+                console.error(`Warning: Error populating final cart data: ${finalPopulateErr.message}`);
+            }
             
             return new CartDTO(savedCart);
         } catch (error) {
@@ -85,32 +108,49 @@ class CartRepository {
 
     async updateCartItem(userId, productId, quantity) {
         try {
-            const cart = await Cart.findOne({ user: userId });
+            let cart = await Cart.findOne({ user: userId });
             
             if (!cart) {
-                throw new Error('Cart not found');
+                // Create cart if it doesn't exist
+                console.log(`Creating new cart for user ${userId} during update`);
+                cart = await this.createCart(userId);
+                // Add the item since cart was just created
+                return await this.addItemToCart(userId, productId, quantity);
             }
 
-            const itemIndex = cart.items.findIndex(
-                item => item.product.toString() === productId.toString()
-            );
+            const itemIndex = cart.items.findIndex(item => {
+                const itemProductId = item.product._id || item.product;
+                return itemProductId.toString() === productId.toString();
+            });
 
             if (itemIndex === -1) {
-                throw new Error('Product not found in cart');
+                // If product not in cart, add it instead of throwing error
+                return await this.addItemToCart(userId, productId, quantity);
             }
 
             // Update quantity
             cart.items[itemIndex].quantity = quantity;
 
-            // Recalculate total
-            await cart.populate('items.product');
-            cart.total = cart.items.reduce(
-                (sum, item) => sum + (item.product.price * item.quantity),
-                0
-            );
+            try {
+                // Recalculate total
+                await cart.populate('items.product');
+                cart.total = cart.items.reduce((sum, item) => {
+                    const price = item.product && item.product.price ? item.product.price : 0;
+                    return sum + (price * item.quantity);
+                }, 0);
+            } catch (populateErr) {
+                console.error(`Warning: Error populating product data: ${populateErr.message}`);
+                // Set default total if we can't calculate it
+                cart.total = 0;
+            }
 
             const savedCart = await cart.save();
-            await savedCart.populate('items.product');
+            
+            try {
+                await savedCart.populate('items.product');
+            } catch (finalPopulateErr) {
+                console.error(`Warning: Error populating final cart data: ${finalPopulateErr.message}`);
+            }
             
             return new CartDTO(savedCart);
         } catch (error) {
@@ -123,23 +163,37 @@ class CartRepository {
             const cart = await Cart.findOne({ user: userId });
             
             if (!cart) {
-                throw new Error('Cart not found');
+                // Just return an empty cart if cart doesn't exist
+                console.log(`No cart found for user ${userId} during item removal`);
+                return await this.createCart(userId);
             }
 
-            // Remove product from cart
-            cart.items = cart.items.filter(
-                item => item.product.toString() !== productId.toString()
-            );
+            // Remove product from cart with safer comparison
+            cart.items = cart.items.filter(item => {
+                const itemProductId = item.product._id || item.product;
+                return itemProductId.toString() !== productId.toString();
+            });
 
-            // Recalculate total
-            await cart.populate('items.product');
-            cart.total = cart.items.reduce(
-                (sum, item) => sum + (item.product.price * item.quantity),
-                0
-            );
+            try {
+                // Recalculate total
+                await cart.populate('items.product');
+                cart.total = cart.items.reduce((sum, item) => {
+                    const price = item.product && item.product.price ? item.product.price : 0;
+                    return sum + (price * item.quantity);
+                }, 0);
+            } catch (populateErr) {
+                console.error(`Warning: Error populating product data: ${populateErr.message}`);
+                // Set default total if we can't calculate it
+                cart.total = 0;
+            }
 
             const savedCart = await cart.save();
-            await savedCart.populate('items.product');
+            
+            try {
+                await savedCart.populate('items.product');
+            } catch (finalPopulateErr) {
+                console.error(`Warning: Error populating final cart data: ${finalPopulateErr.message}`);
+            }
             
             return new CartDTO(savedCart);
         } catch (error) {

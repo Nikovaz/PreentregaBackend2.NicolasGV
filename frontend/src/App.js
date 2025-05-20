@@ -9,8 +9,10 @@ import Home from './pages/Home';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
+import Products from './pages/Products';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import CartPage from './pages/CartPage';
 
 // Components
 import Header from './components/Header';
@@ -19,11 +21,13 @@ import PrivateRoute from './components/PrivateRoute';
 
 // Context
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <CartProvider>
+        <Router>
         <ToastContainer position="top-right" autoClose={3000} />
         <div className="d-flex flex-column min-vh-100">
           <Header />
@@ -34,6 +38,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password/:token" element={<ResetPassword />} />
+              <Route path="/products" element={<Products />} />
               <Route 
                 path="/profile" 
                 element={
@@ -42,11 +47,20 @@ function App() {
                   </PrivateRoute>
                 } 
               />
+              <Route 
+                path="/cart" 
+                element={
+                  <PrivateRoute>
+                    <CartPage />
+                  </PrivateRoute>
+                } 
+              />
             </Routes>
           </main>
           <Footer />
         </div>
-      </Router>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }

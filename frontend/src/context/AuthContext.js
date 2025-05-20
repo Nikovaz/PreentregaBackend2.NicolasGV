@@ -41,7 +41,13 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const response = await authService.login({ email, password });
       localStorage.setItem('token', response.token);
-      await getCurrentUser();
+      // Si el backend devuelve los datos del usuario junto con el token, los usamos directamente
+      if (response.user) {
+        setUser(response.user);
+      } else {
+        // Si no, obtenemos el usuario con una petición separada
+        await getCurrentUser();
+      }
       toast.success('Inicio de sesión exitoso');
       return response;
     } catch (error) {
