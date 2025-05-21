@@ -8,27 +8,25 @@ const Home = () => {
   const { isAuthenticated } = useAuth();
   const { addToCart } = useCart();
   
-  // Sample products data that matches the MongoDB id format
+  // Sample products data with actual MongoDB IDs from the database
   const featuredProducts = [
     {
-      _id: '60d21b4667d0d8992e610c85',
-      name: 'Producto 1',
-      price: 99.99
+      _id: '682d7686fb37ebbe5419b3ed',
+      name: 'Laptop Gaming',
+      price: 1299.99,
+      description: 'Potente laptop para gaming con RTX 3070 y 16GB RAM'
     },
     {
-      _id: '60d21b4667d0d8992e610c86',
-      name: 'Producto 2',
-      price: 99.99
+      _id: '682d7686fb37ebbe5419b3ee',
+      name: 'Smartphone Pro',
+      price: 799.99,
+      description: 'Smartphone de última generación con cámara triple y 5G'
     },
     {
-      _id: '60d21b4667d0d8992e610c87',
-      name: 'Producto 3',
-      price: 99.99
-    },
-    {
-      _id: '60d21b4667d0d8992e610c88',
-      name: 'Producto 4',
-      price: 99.99
+      _id: '682d7686fb37ebbe5419b3ef',
+      name: 'Monitor 4K',
+      price: 499.99,
+      description: 'Monitor de 27 pulgadas con resolución 4K'
     }
   ];
   
@@ -47,6 +45,7 @@ const Home = () => {
       toast.error(`Error al añadir al carrito: ${error.message}`);
     }
   };
+
   return (
     <Container>
       <Row className="mb-4">
@@ -73,13 +72,13 @@ const Home = () => {
           <Col key={product._id} md={3} className="mb-4">
             <Card>
               <Card.Img 
-  variant="top" 
-  src={`/images/azul.png`} // o la imagen que prefieras
-/>
+                variant="top" 
+                src={`/images/azul.png`} // o la imagen que prefieras
+              />
               <Card.Body>
                 <Card.Title>{product.name}</Card.Title>
                 <Card.Text>
-                  Descripción corta del {product.name}.
+                  {product.description}
                 </Card.Text>
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="h5 mb-0">${product.price}</span>

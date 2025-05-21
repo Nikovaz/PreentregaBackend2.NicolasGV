@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
+import { formatCurrency } from '../utils/formatCurrency';
 
 const Cart = () => {
     const { cart, loading, error, updateCartItem, removeFromCart, clearCart, checkout } = useCart();
@@ -65,62 +66,60 @@ const Cart = () => {
             
             <div className="cart-items">
                 {cart.items.map((item) => (
-                    <div key={item.product._id} className="cart-item">
+                    <div key={item.productId} className="cart-item">
                         <div className="cart-item-info">
-                            <h3>{item.product.name}</h3>
-                            <p>${item.product.price} per unit</p>
+                            <h3>{item.name}</h3>
+                            <p>{formatCurrency(item.price)} per unit</p>
+                            <p className="cart-item-description">{item.description}</p>
                         </div>
                         
                         <div className="cart-item-quantity">
                             <button 
-                                onClick={() => handleQuantityChange(item.product._id, item.quantity - 1)}
+                                onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                             >
                                 -
                             </button>
                             <span>{item.quantity}</span>
                             <button 
-                                onClick={() => handleQuantityChange(item.product._id, item.quantity + 1)}
-                                disabled={item.quantity >= item.product.stock}
+                                onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                                disabled={item.quantity >= item.stock}
                             >
                                 +
                             </button>
                         </div>
                         
                         <div className="cart-item-subtotal">
-                            ${(item.product.price * item.quantity).toFixed(2)}
+                            {formatCurrency(item.subtotal)}
                         </div>
                         
                         <button 
                             className="cart-item-remove"
-                            onClick={() => handleRemoveItem(item.product._id)}
+                            onClick={() => handleRemoveItem(item.productId)}
                         >
                             Remove
                         </button>
                     </div>
                 ))}
             </div>
-            
-            <div className="cart-summary">
-                <div className="cart-total">
-                    <strong>Total:</strong> ${cart.total.toFixed(2)}
-                </div>
-                
-                <div className="cart-actions">
-                    <button 
-                        className="cart-clear"
-                        onClick={handleClearCart}
-                    >
-                        Clear Cart
-                    </button>
-                    
-                    <button 
-                        className="cart-checkout"
-                        onClick={handleCheckout}
-                    >
-                        Checkout
-                    </button>
-                </div>
+
+            <div className="cart-total">
+                <h3>Total: {formatCurrency(cart.total)}</h3>
+            </div>
+
+            <div className="cart-actions">
+                <button 
+                    className="cart-clear"
+                    onClick={handleClearCart}
+                >
+                    Clear Cart
+                </button>
+                <button 
+                    className="cart-checkout"
+                    onClick={handleCheckout}
+                >
+                    Checkout
+                </button>
             </div>
         </div>
     );

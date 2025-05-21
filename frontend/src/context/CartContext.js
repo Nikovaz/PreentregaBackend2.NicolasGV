@@ -1,40 +1,30 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import cartService from '../services/cartService';
+import { CartService } from '../services/cartService';
 import { useAuth } from './AuthContext';
 
-// Crear el contexto del carrito
+// Create the cart context
 const CartContext = createContext();
 
-// Hook personalizado para usar el contexto del carrito
+// Custom hook to use the cart context
 export const useCart = () => {
     return useContext(CartContext);
 };
 
-// Proveedor del contexto del carrito
+// Cart provider component
 export const CartProvider = ({ children }) => {
     const [cart, setCart] = useState({ items: [], total: 0 });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { isAuthenticated } = useAuth();
 
-    // Cargar el carrito del usuario cuando está autenticado
-    useEffect(() => {
-        if (isAuthenticated) {
-            fetchCart();
-        } else {
-            // Si el usuario no está autenticado, reiniciar el carrito
-            setCart({ items: [], total: 0 });
-        }
-    }, [isAuthenticated]);
-
-    // Función para obtener el carrito del backend
+    // Function to fetch cart from backend
     const fetchCart = async () => {
         setLoading(true);
         setError(null);
         
         try {
             if (isAuthenticated) {
-                const cartData = await cartService.getCart();
+                const cartData = await new CartService(process.env.REACT_APP_API_URL).getCart();
                 setCart(cartData);
             }
         } catch (err) {
@@ -45,32 +35,23 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // Función para agregar un producto al carrito
+    // Function to add a product to cart
     const addToCart = async (productId, quantity = 1) => {
-        setLoading(true);
-        setError(null);
-        
         try {
             if (!isAuthenticated) {
-                setError('You must be logged in to add items to cart');
-                return;
+                throw new Error('You must be logged in to add items to cart');
             }
-            
-            console.log('Añadiendo al carrito:', { productId, quantity });
-            const updatedCart = await cartService.addToCart(productId, quantity);
-            console.log('Carrito actualizado:', updatedCart);
-            setCart(updatedCart);
-            return updatedCart;
-        } catch (err) {
-            setError(err.message || 'Error adding item to cart');
-            console.error('Error adding to cart:', err);
-            throw err;
-        } finally {
-            setLoading(false);
+
+            const cartData = await new CartService(process.env.REACT_APP_API_URL).addToCart(productId, quantity);
+            setCart(cartData);
+            return cartData;
+        } catch (error) {
+            console.error('Error adding item to cart:', error);
+            throw error;
         }
     };
 
-    // Función para actualizar la cantidad de un producto en el carrito
+    // Function to update cart item quantity
     const updateCartItem = async (productId, quantity) => {
         setLoading(true);
         setError(null);
@@ -81,7 +62,7 @@ export const CartProvider = ({ children }) => {
                 return;
             }
             
-            const updatedCart = await cartService.updateCartItem(productId, quantity);
+            const updatedCart = await new CartService(process.env.REACT_APP_API_URL).updateCartItem(productId, quantity);
             setCart(updatedCart);
             return updatedCart;
         } catch (err) {
@@ -93,7 +74,7 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // Función para eliminar un producto del carrito
+    // Function to remove a product from cart
     const removeFromCart = async (productId) => {
         setLoading(true);
         setError(null);
@@ -104,7 +85,7 @@ export const CartProvider = ({ children }) => {
                 return;
             }
             
-            const updatedCart = await cartService.removeCartItem(productId);
+            const updatedCart = await new CartService(process.env.REACT_APP_API_URL).removeCartItem(productId);
             setCart(updatedCart);
             return updatedCart;
         } catch (err) {
@@ -116,7 +97,7 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // Función para vaciar el carrito
+    // Function to clear cart
     const clearCart = async () => {
         setLoading(true);
         setError(null);
@@ -127,7 +108,7 @@ export const CartProvider = ({ children }) => {
                 return;
             }
             
-            const emptyCart = await cartService.clearCart();
+            const emptyCart = await new CartService(process.env.REACT_APP_API_URL).clearCart();
             setCart(emptyCart);
             return emptyCart;
         } catch (err) {
@@ -139,7 +120,7 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // Función para procesar la compra
+    // Function to process checkout
     const checkout = async () => {
         setLoading(true);
         setError(null);
@@ -150,8 +131,8 @@ export const CartProvider = ({ children }) => {
                 return;
             }
             
-            const result = await cartService.checkout();
-            // Si la compra fue exitosa (total o parcial), actualizar el carrito
+            const result = await new CartService(process.env.REACT_APP_API_URL).checkout();
+            // If purchase was successful (full or partial), update cart
             await fetchCart();
             return result;
         } catch (err) {
@@ -163,7 +144,16 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    // Valor del contexto que se proporcionará
+    // Load cart when user is authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchCart();
+        } else {
+            setCart({ items: [], total: 0 });
+        }
+    }, [isAuthenticated]);
+
+    // Context value to be provided
     const value = {
         cart,
         loading,

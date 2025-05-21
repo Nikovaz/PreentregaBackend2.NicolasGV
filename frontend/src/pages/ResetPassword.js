@@ -13,19 +13,53 @@ const ResetPassword = () => {
   const { resetPassword, verifyResetToken } = useAuth();
 
   useEffect(() => {
+    // Verificamos si ya existe un indicador en sessionStorage de que hemos restablecido la contraseña con este token
+    const hasResetPassword = sessionStorage.getItem(`password_reset_${token}`);
+    
+    if (hasResetPassword) {
+      // Si ya se ha restablecido la contraseña con este token, redireccionar al login
+      toast.info('Esta sesión de restablecimiento ya ha sido utilizada');
+      navigate('/login');
+      return;
+    }
+
+    // Verificar si el token es válido
     const checkToken = async () => {
       try {
-        await verifyResetToken(token);
+        const response = await verifyResetToken(token);
+        if (!response.valid) {
+          if (response.used) {
+            toast.info('Esta sesión de restablecimiento ya ha sido utilizada');
+            navigate('/login');
+          } else {
+            setValidToken(false);
+            toast.error('El enlace es inválido o ha expirado');
+          }
+        } else {
+          setValidToken(true);
+        }
       } catch (error) {
+        console.error('Error al verificar el token:', error);
         setValidToken(false);
-        toast.error('El enlace es inválido o ha expirado');
+        toast.error(error.response?.data?.message || 'Error al verificar el enlace');
       }
     };
-    
+
+    // Verificar el token inmediatamente
     if (token) {
       checkToken();
     }
-  }, [token, verifyResetToken]);
+
+    // Verificar cada 5 segundos si el token sigue siendo válido
+    const interval = setInterval(() => {
+      if (token) {
+        checkToken();
+      }
+    }, 5000);
+
+    // Limpiar el intervalo cuando el componente se desmonte
+    return () => clearInterval(interval);
+  }, [token, verifyResetToken, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,8 +75,13 @@ const ResetPassword = () => {
     try {
       setLoading(true);
       await resetPassword(token, password);
+      // Marcamos que este token ya ha sido usado para restablecer la contraseña
+      sessionStorage.setItem(`password_reset_${token}`, 'true');
       toast.success('Contraseña restablecida exitosamente');
-      navigate('/login');
+      // Redirigir al login inmediatamente
+      navigate('/login', { replace: true });
+      // Limpieza de la sesión después de la redirección
+      sessionStorage.removeItem(`password_reset_${token}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error al restablecer la contraseña');
     } finally {
@@ -92,6 +131,7 @@ const ResetPassword = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength="6"
+                  autoComplete="new-password"
                 />
               </div>
               <div className="mb-3">
@@ -99,10 +139,11 @@ const ResetPassword = () => {
                 <input
                   type="password"
                   className="form-control"
-                  id="confirmPassword"
+                  placeholder="Confirmar contraseña"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  autoComplete="new-password"
                 />
               </div>
               <button 

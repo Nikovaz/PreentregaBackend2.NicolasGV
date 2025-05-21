@@ -5,10 +5,10 @@
   "main": "src/app.js",
   "type": "module",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
+    "start": "cd backend && node app.js",
+    "dev": "cd backend && nodemon app.js",
     "frontend": "cd frontend && npm start",
-    "dev:all": "concurrently \"npm run dev\" \"npm run frontend\""
+    "dev:all": "concurrently \"cd backend && nodemon app.js\" \"npm run frontend\""
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",

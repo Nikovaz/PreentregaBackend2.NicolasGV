@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = process.env.REACT_APP_API_URL;
 
 class CartService {
     async getCart() {
@@ -160,4 +160,4 @@ class CartService {
     }
 }
 
-export default new CartService();
+export { CartService };

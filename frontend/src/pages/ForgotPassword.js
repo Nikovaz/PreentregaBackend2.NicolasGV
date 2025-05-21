@@ -7,6 +7,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,11 +19,27 @@ const ForgotPassword = () => {
     
     try {
       setLoading(true);
+      setError(null);
+      
+      // Enviamos la solicitud al backend
       await authService.requestPasswordReset(email);
+      
+      // Si llegamos aquí, todo fue exitoso
       setSent(true);
       toast.success('Correo de recuperación enviado exitosamente');
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al solicitar recuperación de contraseña');
+      console.error('Error al solicitar recuperación:', error);
+      
+      // Mensaje de error más detallado y guía para el usuario
+      const errorMessage = error.response?.data?.message || 'Error al solicitar recuperación de contraseña';
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Si fue un error de correo específico, damos sugerencias
+      if (errorMessage.includes('correo') || errorMessage.includes('email')) {
+        setError(errorMessage + '\nPor favor, verifica que el correo electrónico sea correcto y esté registrado en el sistema.');
+      }
     } finally {
       setLoading(false);
     }
@@ -41,6 +58,12 @@ const ForgotPassword = () => {
                   <p className="text-center text-muted mb-4">
                     Ingresa tu correo electrónico y te enviaremos un enlace para recuperar tu contraseña.
                   </p>
+                  
+                  {error && (
+                    <div className="alert alert-danger" role="alert">
+                      <strong>Error:</strong> {error}
+                    </div>
+                  )}
                   
                   <form onSubmit={handleSubmit}>
                     <div className="mb-3">
@@ -61,7 +84,12 @@ const ForgotPassword = () => {
                         className="btn btn-primary" 
                         disabled={loading}
                       >
-                        {loading ? 'Enviando...' : 'Enviar Enlace de Recuperación'}
+                        {loading ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Enviando...
+                          </>
+                        ) : 'Enviar Enlace de Recuperación'}
                       </button>
                     </div>
                   </form>
