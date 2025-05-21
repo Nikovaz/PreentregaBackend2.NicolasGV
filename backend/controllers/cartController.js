@@ -80,6 +80,11 @@ export const removeCartItem = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { productId } = req.body;
+        
+        if (!productId) {
+            return res.status(400).json({ error: 'Product ID is required' });
+        }
+
         const result = await cartService.removeItemFromCart(userId, productId);
         res.status(200).json(result);
     } catch (error) {

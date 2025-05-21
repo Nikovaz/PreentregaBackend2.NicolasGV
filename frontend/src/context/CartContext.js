@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { CartService } from '../services/cartService';
 import { useAuth } from './AuthContext';
 
@@ -18,7 +18,7 @@ export const CartProvider = ({ children }) => {
     const { isAuthenticated } = useAuth();
 
     // Function to fetch cart from backend
-    const fetchCart = async () => {
+    const fetchCart = useCallback(async () => {
         setLoading(true);
         setError(null);
         
@@ -33,7 +33,7 @@ export const CartProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [isAuthenticated, setLoading, setError, setCart]);
 
     // Function to add a product to cart
     const addToCart = async (productId, quantity = 1) => {
@@ -75,7 +75,7 @@ export const CartProvider = ({ children }) => {
     };
 
     // Function to remove a product from cart
-    const removeFromCart = async (productId) => {
+    const removeFromCart = async (product) => {
         setLoading(true);
         setError(null);
         
@@ -85,9 +85,20 @@ export const CartProvider = ({ children }) => {
                 return;
             }
             
-            const updatedCart = await new CartService(process.env.REACT_APP_API_URL).removeCartItem(productId);
-            setCart(updatedCart);
-            return updatedCart;
+            // Extract the productId from the product object
+            const productId = product.productId._id || product.productId;
+            
+            if (!productId) {
+                throw new Error('Invalid product ID');
+            }
+
+            // Convert to string to match backend expectations
+            const productIdStr = productId.toString();
+
+            // Use the extracted productId
+            await new CartService(process.env.REACT_APP_API_URL).removeCartItem(productIdStr);
+            // Refresh cart after removal
+            await fetchCart();
         } catch (err) {
             setError(err.message || 'Error removing item from cart');
             console.error('Error removing from cart:', err);
@@ -151,7 +162,7 @@ export const CartProvider = ({ children }) => {
         } else {
             setCart({ items: [], total: 0 });
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, fetchCart]);
 
     // Context value to be provided
     const value = {

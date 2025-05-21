@@ -1,5 +1,7 @@
 import Cart from '../models/Cart.js';
-import productRepository from './productRepository.js'; // Assuming productRepository is in the same directory
+import productRepository from './productRepository.js'; 
+import mongoose from 'mongoose'; 
+import { toObjectId } from '../services/cartService.js';
 
 class CartRepository {
     async createCart(userId) {
@@ -114,15 +116,27 @@ class CartRepository {
                 throw new Error('Cart not found');
             }
 
-            cart.items = cart.items.filter(item => item.productId !== productId);
+            // Convert to ObjectId safely
+            const productIdObj = toObjectId(productId);
+            if (!productIdObj) {
+                throw new Error('Invalid product ID format');
+            }
+
+            // Find and remove the item
+            cart.items = cart.items.filter(item => {
+                return !item.productId.equals(productIdObj);
+            });
 
             // Calculate new total
             cart.total = cart.items.reduce((sum, item) => {
                 return sum + item.subtotal;
             }, 0);
 
-            return await cart.save();
+            // Save the cart
+            const updatedCart = await cart.save();
+            return updatedCart;
         } catch (error) {
+            console.error('Error removing item from cart:', error);
             throw new Error(`Error removing item from cart: ${error.message}`);
         }
     }

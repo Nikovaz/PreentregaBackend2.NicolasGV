@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 class CartService {
     async getCart() {
@@ -61,7 +61,10 @@ class CartService {
                 throw new Error('No authentication token found');
             }
 
-            const response = await fetch(`${API_URL}/cart/items/${productId}`, {
+            // Convert productId to string
+            const productIdStr = productId.toString();
+
+            const response = await fetch(`${API_URL}/cart/items/${productIdStr}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -71,10 +74,13 @@ class CartService {
             });
 
             if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                const errorText = await response.text();
+                const errorData = errorText && JSON.parse(errorText);
+                throw new Error(`Error ${response.status}: ${errorData?.message || errorText || response.statusText}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            return data;
         } catch (error) {
             console.error('Error updating cart item:', error);
             throw error;
@@ -88,22 +94,27 @@ class CartService {
                 throw new Error('No authentication token found');
             }
 
-            const response = await fetch(`${API_URL}/cart/items/${productId}`, {
+            // Convert productId to string
+            const productIdStr = productId.toString();
+
+            const response = await fetch(`${API_URL}/cart/items`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                }
+                },
+                body: JSON.stringify({ productId: productIdStr })
             });
 
             if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
+                const error = await response.json().catch(() => ({}));
+                throw new Error(`Error ${response.status}: ${error.message || response.statusText}`);
             }
 
             return await response.json();
         } catch (error) {
             console.error('Error removing cart item:', error);
-            throw error;
+            throw new Error(`Failed to remove cart item: ${error.message}`);
         }
     }
 

@@ -5,7 +5,7 @@ import userRepository from '../repositories/userRepository.js';
 import mongoose from 'mongoose';
 
 // Helper function to safely convert to ObjectId 
-const toObjectId = (id) => {
+export const toObjectId = (id) => {
     try {
         return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
     } catch (error) {
@@ -13,11 +13,15 @@ const toObjectId = (id) => {
     }
 };
 
-class CartService {
+export class CartService {
     async getCart(userId) {
         try {
             // Try to get the existing cart
-            const cart = await cartRepository.getCartByUser(userId);
+            const userIdObj = toObjectId(userId);
+            if (!userIdObj) {
+                throw new Error('Invalid ID format');
+            }
+            const cart = await cartRepository.getCartByUser(userIdObj);
             return cart;
         } catch (error) {
             // If cart not found, create a new one
@@ -67,7 +71,7 @@ class CartService {
 
     async removeItemFromCart(userId, productId) {
         try {
-            // Convertir IDs a ObjectId de manera segura
+            // Convert IDs to ObjectId safely
             const userIdObj = toObjectId(userId);
             const productIdObj = toObjectId(productId);
 
@@ -75,15 +79,10 @@ class CartService {
                 throw new Error('Invalid ID format');
             }
 
-            // Get product details to validate
-            const product = await productRepository.getProductById(productIdObj);
-            if (!product) {
-                throw new Error('Product not found');
-            }
-
             // Remove from cart
             return await cartRepository.removeItemFromCart(userIdObj, productIdObj);
         } catch (error) {
+            console.error('Error removing item from cart:', error);
             throw new Error(`Error removing item from cart: ${error.message}`);
         }
     }
@@ -104,12 +103,13 @@ class CartService {
                 throw new Error('Product not found');
             }
 
-            // Check if there's enough stock
+            // Verificar si hay suficiente stock
             if (product.stock < quantity) {
                 throw new Error(`Not enough stock. Available: ${product.stock}`);
             }
 
-            return await cartRepository.updateCartItem(userIdObj, productIdObj, quantity);
+            const result = await cartRepository.updateCartItem(userIdObj, productIdObj, quantity);
+            return result;
         } catch (error) {
             throw new Error(`Error updating cart item: ${error.message}`);
         }
@@ -172,8 +172,12 @@ class CartService {
             let totalAmount = 0;
 
             for (const item of cart.items) {
-                const product = await productRepository.getProductById(item.product);
+                const product = await productRepository.getProductById(item.productId);
                 
+                if (!product) {
+                    throw new Error(`Product not found: ${item.productId}`);
+                }
+
                 if (product.stock >= item.quantity) {
                     // Process the item
                     processedItems.push({
@@ -211,7 +215,6 @@ class CartService {
             // Create ticket
             const ticketData = {
                 purchaser: userIdObj,
-                purchaser_email: user.email,
                 items: processedItems,
                 amount: totalAmount,
                 status: unprocessedItems.length > 0 ? 'partial' : 'completed',
@@ -226,7 +229,7 @@ class CartService {
             } else {
                 // Keep only unprocessed items in cart
                 const remainingItems = unprocessedItems.map(item => ({
-                    product: item.product,
+                    productId: item.product,
                     quantity: item.quantity
                 }));
 

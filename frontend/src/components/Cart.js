@@ -17,22 +17,25 @@ const Cart = () => {
         return <div className="cart-empty">Your cart is empty.</div>;
     }
 
-    const handleQuantityChange = async (productId, newQuantity) => {
+    const handleQuantityChange = async (product, newQuantity) => {
         try {
             if (newQuantity < 1) {
                 return;
             }
-            await updateCartItem(productId, newQuantity);
+            await updateCartItem(product.productId, newQuantity);
         } catch (err) {
             console.error('Error updating quantity:', err);
         }
     };
 
-    const handleRemoveItem = async (productId) => {
+    const handleRemoveItem = async (product) => {
         try {
-            await removeFromCart(productId);
+            // Log the product object to debug
+            console.log('Removing product:', product);
+            await removeFromCart(product);
         } catch (err) {
             console.error('Error removing item:', err);
+            throw err; // Propagate the error to show the error message in the UI
         }
     };
 
@@ -75,14 +78,14 @@ const Cart = () => {
                         
                         <div className="cart-item-quantity">
                             <button 
-                                onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                                onClick={() => handleQuantityChange(item, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                             >
                                 -
                             </button>
                             <span>{item.quantity}</span>
                             <button 
-                                onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                                onClick={() => handleQuantityChange(item, item.quantity + 1)}
                                 disabled={item.quantity >= item.stock}
                             >
                                 +
@@ -95,7 +98,7 @@ const Cart = () => {
                         
                         <button 
                             className="cart-item-remove"
-                            onClick={() => handleRemoveItem(item.productId)}
+                            onClick={() => handleRemoveItem(item)}
                         >
                             Remove
                         </button>

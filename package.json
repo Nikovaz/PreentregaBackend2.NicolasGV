@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "cd backend && node app.js",
-    "dev": "cd backend && nodemon app.js",
+    "dev": "npm run backend",
+    "backend": "cd backend && nodemon app.js",
     "frontend": "cd frontend && npm start",
-    "dev:all": "concurrently \"cd backend && nodemon app.js\" \"npm run frontend\""
+    "dev:all": "concurrently \"npm run backend\" \"npm run frontend\""
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",

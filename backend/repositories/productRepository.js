@@ -1,4 +1,14 @@
 import Product from '../models/Product.js';
+import mongoose from 'mongoose';
+
+// Helper function to safely convert to ObjectId 
+const toObjectId = (id) => {
+    try {
+        return mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null;
+    } catch (error) {
+        return null;
+    }
+};
 
 class ProductRepository {
     async createProduct(productData) {
@@ -12,7 +22,11 @@ class ProductRepository {
 
     async getProductById(productId) {
         try {
-            return await Product.findById(productId);
+            const productIdObj = toObjectId(productId);
+            if (!productIdObj) {
+                throw new Error('Invalid product ID format');
+            }
+            return await Product.findById(productIdObj);
         } catch (error) {
             throw new Error(`Error fetching product: ${error.message}`);
         }
@@ -28,7 +42,11 @@ class ProductRepository {
 
     async updateProduct(productId, updateData) {
         try {
-            return await Product.findByIdAndUpdate(productId, updateData, { new: true });
+            const productIdObj = toObjectId(productId);
+            if (!productIdObj) {
+                throw new Error('Invalid product ID format');
+            }
+            return await Product.findByIdAndUpdate(productIdObj, updateData, { new: true });
         } catch (error) {
             throw new Error(`Error updating product: ${error.message}`);
         }
@@ -36,7 +54,11 @@ class ProductRepository {
 
     async deleteProduct(productId) {
         try {
-            return await Product.findByIdAndDelete(productId);
+            const productIdObj = toObjectId(productId);
+            if (!productIdObj) {
+                throw new Error('Invalid product ID format');
+            }
+            return await Product.findByIdAndDelete(productIdObj);
         } catch (error) {
             throw new Error(`Error deleting product: ${error.message}`);
         }
