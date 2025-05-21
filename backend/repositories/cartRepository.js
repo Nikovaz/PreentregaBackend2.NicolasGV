@@ -18,7 +18,7 @@ class CartRepository {
     async getCartByUser(userId) {
         try {
             const cart = await Cart.findOne({ user: userId })
-                .populate('items.product', 'name price stock description category')
+                .populate('items.productId', 'name price stock description category')
                 .exec();
             return cart;
         } catch (error) {

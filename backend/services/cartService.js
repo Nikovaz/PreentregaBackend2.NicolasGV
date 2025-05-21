@@ -16,18 +16,22 @@ const toObjectId = (id) => {
 class CartService {
     async getCart(userId) {
         try {
-            try {
-                // Try to get the existing cart
-                return await cartRepository.getCartByUser(userId);
-            } catch (error) {
-                // If cart not found, create a new one
-                if (error.message.includes('Cart not found')) {
-                    console.log(`Creating new cart for user ${userId}`);
-                    return await cartRepository.createCart(userId);
-                }
-                throw error; // Re-throw other errors
-            }
+            // Try to get the existing cart
+            const cart = await cartRepository.getCartByUser(userId);
+            return cart;
         } catch (error) {
+            // If cart not found, create a new one
+            if (error.message.includes('Cart not found')) {
+                console.log(`Creating new cart for user ${userId}`);
+                const newCart = await cartRepository.createCart(userId);
+                return newCart;
+            }
+            // If populate error, try again without populate
+            if (error.message.includes('Cannot populate path')) {
+                console.log('Retrying cart fetch without populate...');
+                const cart = await cartRepository.getCartByUser(userId, false);
+                return cart;
+            }
             throw new Error(`Error fetching cart: ${error.message}`);
         }
     }
