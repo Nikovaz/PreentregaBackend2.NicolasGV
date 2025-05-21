@@ -7,63 +7,53 @@ const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [validToken, setValidToken] = useState(true);
+  const [hasCheckedToken, setHasCheckedToken] = useState(false);
+  const [tokenIsValid, setTokenIsValid] = useState(null);
   const { token } = useParams();
   const navigate = useNavigate();
   const { resetPassword, verifyResetToken } = useAuth();
 
   useEffect(() => {
-    // Verificamos si ya existe un indicador en sessionStorage de que hemos restablecido la contraseña con este token
-    const hasResetPassword = sessionStorage.getItem(`password_reset_${token}`);
-    
-    if (hasResetPassword) {
-      // Si ya se ha restablecido la contraseña con este token, redireccionar al login
-      toast.info('Esta sesión de restablecimiento ya ha sido utilizada');
-      navigate('/login');
-      return;
-    }
-
-    // Verificar si el token es válido
-    const checkToken = async () => {
-      try {
-        const response = await verifyResetToken(token);
-        if (!response.valid) {
-          if (response.used) {
-            toast.info('Esta sesión de restablecimiento ya ha sido utilizada');
-            navigate('/login');
-          } else {
-            setValidToken(false);
-            toast.error('El enlace es inválido o ha expirado');
-          }
-        } else {
-          setValidToken(true);
-        }
-      } catch (error) {
-        console.error('Error al verificar el token:', error);
-        setValidToken(false);
-        toast.error(error.response?.data?.message || 'Error al verificar el enlace');
-      }
-    };
-
-    // Verificar el token inmediatamente
-    if (token) {
+    // Verificar token solo una vez al cargar
+    if (token && !hasCheckedToken) {
       checkToken();
+      setHasCheckedToken(true);
     }
+  }, [token, verifyResetToken, navigate, hasCheckedToken]);
 
-    // Verificar cada 5 segundos si el token sigue siendo válido
-    const interval = setInterval(() => {
-      if (token) {
-        checkToken();
+  const checkToken = async () => {
+    try {
+      const response = await verifyResetToken(token);
+      
+      // El backend no devuelve un objeto con .valid, así que asumimos que si no hay error, el token es válido
+      setTokenIsValid(true);
+      
+    } catch (error) {
+      console.error('Error al verificar el token:', error);
+      setTokenIsValid(false);
+      
+      // Manejar los diferentes tipos de errores que puede devolver el backend
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes('Token inválido')) {
+          toast.error('El enlace es inválido o ha expirado');
+        } else if (error.response.data.message.includes('Usuario no encontrado')) {
+          toast.error('Usuario no encontrado');
+        } else {
+          toast.error(error.response.data.message);
+        }
+      } else {
+        toast.error('Error al verificar el enlace');
       }
-    }, 5000);
-
-    // Limpiar el intervalo cuando el componente se desmonte
-    return () => clearInterval(interval);
-  }, [token, verifyResetToken, navigate]);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!token) {
+      return toast.error('Token de reseteo no válido');
+    }
+
     if (password !== confirmPassword) {
       return toast.error('Las contraseñas no coinciden');
     }
@@ -74,22 +64,35 @@ const ResetPassword = () => {
     
     try {
       setLoading(true);
+      
+      // Intentar resetear la contraseña directamente
       await resetPassword(token, password);
-      // Marcamos que este token ya ha sido usado para restablecer la contraseña
-      sessionStorage.setItem(`password_reset_${token}`, 'true');
+      
+      // Si llegamos aquí, el reseteo fue exitoso
       toast.success('Contraseña restablecida exitosamente');
-      // Redirigir al login inmediatamente
       navigate('/login', { replace: true });
-      // Limpieza de la sesión después de la redirección
-      sessionStorage.removeItem(`password_reset_${token}`);
+      
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error al restablecer la contraseña');
+      console.error('Error al resetear la contraseña:', error);
+      
+      // Manejar los diferentes tipos de errores
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes('Token inválido')) {
+          toast.error('El enlace de reseteo ha expirado o es inválido');
+        } else if (error.response.data.message.includes('La nueva contraseña')) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error('Error al restablecer la contraseña');
+        }
+      } else {
+        toast.error('Error al restablecer la contraseña');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (!validToken) {
+  if (tokenIsValid === false) {
     return (
       <div className="row justify-content-center">
         <div className="col-md-6">

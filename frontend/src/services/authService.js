@@ -97,29 +97,23 @@ const authService = {
     }
   },
 
-  // Reset password
-  resetPassword: async (token, password) => {
-    const response = await api.post(`/auth/reset-password/${token}`, { newPassword: password });
-    return response.data;
-  },
-
   // Verify reset token
   verifyResetToken: async (token) => {
     try {
       const response = await api.get(`/auth/verify-reset-token/${token}`);
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        throw new Error(response.data?.message || 'Error al verificar el token');
-      }
+      return response.data;
     } catch (error) {
-      // Handle specific error cases
-      if (error.response) {
-        if (error.response.status === 400) {
-          throw new Error('Token inválido o expirado');
-        }
-        throw new Error(error.response?.data?.message || 'Error al verificar el token');
-      }
+      throw error;
+    }
+  },
+
+  // Reset password
+  resetPassword: async (token, password) => {
+    try {
+      const response = await api.post(`/auth/reset-password/${token}`, { newPassword: password });
+      return response.data;
+    } catch (error) {
+      console.error('Error resetting password:', error);
       throw error;
     }
   },
