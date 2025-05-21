@@ -80,13 +80,21 @@ class CartRepository {
                 throw new Error('Cart not found');
             }
 
-            const itemIndex = cart.items.findIndex(item => item.productId === productId);
+            // Find the item by productId
+            const itemIndex = cart.items.findIndex(item => item.productId.equals(productId));
+            
             if (itemIndex === -1) {
                 throw new Error('Item not found in cart');
             }
 
+            // Update the item
+            const product = await productRepository.getProductById(productId);
+            if (!product) {
+                throw new Error('Product not found');
+            }
+
             cart.items[itemIndex].quantity = quantity;
-            cart.items[itemIndex].subtotal = cart.items[itemIndex].price * quantity;
+            cart.items[itemIndex].subtotal = product.price * quantity;
 
             // Calculate new total
             cart.total = cart.items.reduce((sum, item) => {
